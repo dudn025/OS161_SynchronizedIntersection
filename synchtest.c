@@ -38,6 +38,9 @@
 #include <synch.h>
 #include <test.h>
 
+//#include <time.h>
+//#include <stdlib.h>	// 난수 생성
+
 #define NSEMLOOPS     63
 #define NLOCKLOOPS    120
 #define NCVLOOPS      5
@@ -196,13 +199,15 @@ semtestthread(void *junk, unsigned long num)
 	 * Only one of these should print at a time.
 	 */
 
-	int random =num%4;	
+	//srand(1);	// 난수 생성
+	int random_num = random()%4;		// 난수 생성
+
 	char start;
-	if (random==0)
+	if (random_num == 0)
 		start = 'N';
-	else if (random==1)
+	else if (random_num == 1)
 		start = 'E';	// 원래 E
-	else if (random==2)
+	else if (random_num == 2)
 		start = 'S';	// 원래 S
 	else
 		start = 'W';
