@@ -51,6 +51,13 @@ static struct lock *testlock;
 static struct cv *testcv;
 static struct semaphore *donesem;
 
+static struct semaphore *NW;	// NW 방향 추가
+static struct semaphore *NE;	// NE 방향 추가
+static struct semaphore *SW;	// SW 방향 추가
+static struct semaphore *SE;	// SE 방향 추가
+static struct semaphore *PRINT; // PRINT
+static struct semaphore *INTER; // 교차로에 들어올 수 있는 차의 개수
+
 static
 void
 inititems(void)
@@ -79,25 +86,137 @@ inititems(void)
 			panic("synchtest: sem_create failed\n");
 		}
 	}
+
+
+	// 추가한 부분
+	if (NW==NULL) {
+		NW = sem_create("NW", 1);
+		if (NW == NULL) {
+			panic("synchtest: sem_create failed\n");
+		}
+	}
+	if (NE==NULL) {
+                NE = sem_create("NE", 1);
+                if (NE == NULL) {
+                        panic("synchtest: sem_create failed\n");
+                }
+        }
+	if (SW==NULL) {
+                SW = sem_create("SW", 1);
+                if (SW == NULL) {
+                        panic("synchtest: sem_create failed\n");
+                }
+        }
+	if (SE==NULL) {
+                SE = sem_create("SE", 1);
+                if (SE == NULL) {
+                        panic("synchtest: sem_create failed\n");
+                }
+        }
+	if (PRINT==NULL) {
+		PRINT = sem_create("PRINT", 1);
+		if (PRINT == NULL) {
+			panic("synchtest: sem_create failed\n");
+		}
+	}
+	
+	if(INTER==NULL) {
+		INTER = sem_create("INTER", 3);
+		if (INTER == NULL) {
+			panic("synchtest: sem_create failed\n");
+		}
+	}
+	
+	// 추가한 부분 끝
+}
+
+
+// 메시지 함수
+static void message_function(int car_num, const char *current, const char *access, const char *destination) {
+	P(PRINT);
+	kprintf("차량번호: %d, 현재 위치: %s, 접근 방향: %s, 목적지 방향: %s\n", car_num, current, access, destination);
+	V(PRINT);
+}
+// 직전하는 함수
+static void gostraight(int car_num, char start){
+	P(INTER);
+	switch(start) {
+		case 'N' : message_function(car_num, "N", "NW", "S");
+			   P(NW);
+			   P(SW);
+			   message_function(car_num, "NW", "SW", "S");
+			   message_function(car_num, "SW", "S", "S");
+			   V(NW);
+			   V(SW);
+			   message_function(car_num, "S", "S...", "목적지 S 도착");
+			   break;
+		case 'E' : message_function(car_num, "E", "NE", "W");
+                           P(NE);
+                           P(NW);
+			   message_function(car_num, "NE", "NW", "W");
+			   message_function(car_num, "NW", "W", "W");
+			   V(NE);
+                           V(NW);
+                           message_function(car_num, "W", "W...", "목적지 W 도착");
+			   break;
+		case 'S' : message_function(car_num, "S", "SE", "N");
+                           P(SE);
+                           P(NE);
+			   message_function(car_num, "SE", "NE", "N");
+                           message_function(car_num, "NE", "N", "N");
+                           V(SE);
+                           V(NE);
+                           message_function(car_num, "N", "N...", "목적지 N 도착");
+			   break;
+		case 'W' : message_function(car_num, "W", "SW", "E");
+                           P(SW);                          
+                           P(SE);
+			   message_function(car_num, "SW", "SE", "E");
+                           message_function(car_num, "SE", "E", "E");
+                           V(SW);
+                           V(SE);
+                           message_function(car_num, "E", "E...", "목적지 E 도착");
+			   break;
+		default  : P(PRINT);
+			   kprintf("잘못된 입력입니다.\n");
+			   V(PRINT);
+			   break;
+	}
+	V(INTER);
 }
 
 static
 void
 semtestthread(void *junk, unsigned long num)
 {
-	int i;
+	//int i;
 	(void)junk;
 
 	/*
 	 * Only one of these should print at a time.
 	 */
-	P(testsem);
-	kprintf("Thread %2lu: ", num);
-	for (i=0; i<NSEMLOOPS; i++) {
-		kprintf("%c", (int)num+64);
-	}
+
+	int random =num%4;	
+	char start;
+	if (random==0)
+		start = 'N';
+	else if (random==1)
+		start = 'E';	// 원래 E
+	else if (random==2)
+		start = 'S';	// 원래 S
+	else
+		start = 'W';
+
+
+	gostraight(num, start);
+
+
+	P(testsem);	// 테스트
+		
+	//gostraight(num, start);
+	
 	kprintf("\n");
-	V(donesem);
+	V(donesem);   // 테스트
 }
 
 int
@@ -111,8 +230,8 @@ semtest(int nargs, char **args)
 	inititems();
 	kprintf("Starting semaphore test...\n");
 	kprintf("If this hangs, it's broken: ");
-	P(testsem);
-	P(testsem);
+	P(testsem);   // 테스트
+	P(testsem);   // 테스트
 	kprintf("ok\n");
 
 	for (i=0; i<NTHREADS; i++) {
@@ -129,8 +248,8 @@ semtest(int nargs, char **args)
 	}
 
 	/* so we can run it again */
-	V(testsem);
-	V(testsem);
+	V(testsem);   // 테스트
+	V(testsem);   // 테스트
 
 	kprintf("Semaphore test done.\n");
 	return 0;
