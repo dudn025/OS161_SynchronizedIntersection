@@ -38,9 +38,6 @@
 #include <synch.h>
 #include <test.h>
 
-//#include <time.h>
-//#include <stdlib.h>	// 난수 생성
-
 #define NSEMLOOPS     63
 #define NLOCKLOOPS    120
 #define NCVLOOPS      5
@@ -58,7 +55,6 @@ static struct semaphore *NW;	// NW 방향 추가
 static struct semaphore *NE;	// NE 방향 추가
 static struct semaphore *SW;	// SW 방향 추가
 static struct semaphore *SE;	// SE 방향 추가
-static struct semaphore *PRINT; // PRINT
 static struct semaphore *INTER; // 교차로에 들어올 수 있는 차의 개수
 
 static
@@ -90,8 +86,7 @@ inititems(void)
 		}
 	}
 
-
-	// 추가한 부분
+	// 추가한 부분(NW, NE, SW, SE, INTER 세마포어 생성)
 	if (NW==NULL) {
 		NW = sem_create("NW", 1);
 		if (NW == NULL) {
@@ -115,74 +110,63 @@ inititems(void)
                 if (SE == NULL) {
                         panic("synchtest: sem_create failed\n");
                 }
-        }
-	if (PRINT==NULL) {
-		PRINT = sem_create("PRINT", 1);
-		if (PRINT == NULL) {
-			panic("synchtest: sem_create failed\n");
-		}
-	}
-	
+        }	
 	if(INTER==NULL) {
 		INTER = sem_create("INTER", 3);
 		if (INTER == NULL) {
 			panic("synchtest: sem_create failed\n");
 		}
 	}
-	
-	// 추가한 부분 끝
 }
-
-
-// 메시지 함수
-static void message_function(int car_num, const char *current, const char *access, const char *destination) {
-	P(PRINT);
-	kprintf("차량번호: %d, 현재 위치: %s, 접근 방향: %s, 목적지 방향: %s\n", car_num, current, access, destination);
-	V(PRINT);
+static void message_function(int car_num, const char *current, const char *access, const char *destination, const char *description) {
+	/*메시지 출력*/
+	P(testsem);
+	kprintf("차량번호: %d, 현재 위치: %s, 접근 방향: %s, 목적지 방향: %s, 내역: %s\n", car_num, current, access, destination, description);
+	V(donesem);
 }
-// 직전하는 함수
 static void gostraight(int car_num, char start){
+	/*차량의 교차로에서의 직진의 의미하는 함수*/
 	P(INTER);
 	switch(start) {
-		case 'N' : message_function(car_num, "N", "NW", "S");
+		case 'N' : message_function(car_num, "N", "NW", "S", "현재 교차로의 N에서 대기중..");
 			   P(NW);
 			   P(SW);
-			   message_function(car_num, "NW", "SW", "S");
-			   message_function(car_num, "SW", "S", "S");
+			   message_function(car_num, "NW", "SW", "S", "출발 및 NW 진입");
+			   message_function(car_num, "SW", "S", "S", "NW 탈출 및 SW 진입");
 			   V(NW);
 			   V(SW);
-			   message_function(car_num, "S", "S...", "목적지 S 도착");
+			   message_function(car_num, "S", "S", "S", "SW 탈출 및 목적지 S 도착!");
 			   break;
-		case 'E' : message_function(car_num, "E", "NE", "W");
+		case 'E' : message_function(car_num, "E", "NE", "W", "현재 교차로의 E에서 대기중..");
                            P(NE);
                            P(NW);
-			   message_function(car_num, "NE", "NW", "W");
-			   message_function(car_num, "NW", "W", "W");
+			   message_function(car_num, "NE", "NW", "W", "출발 및 NE 진입");
+			   message_function(car_num, "NW", "W", "W", "NE 탈출 및 NW 진입");
 			   V(NE);
                            V(NW);
-                           message_function(car_num, "W", "W...", "목적지 W 도착");
+                           message_function(car_num, "W", "W", "W", "NW 탈출 및 목적지 W 도착!");
 			   break;
-		case 'S' : message_function(car_num, "S", "SE", "N");
+		case 'S' : message_function(car_num, "S", "SE", "N", "현재 교차로의 S에서 대기중..");
                            P(SE);
                            P(NE);
-			   message_function(car_num, "SE", "NE", "N");
-                           message_function(car_num, "NE", "N", "N");
+			   message_function(car_num, "SE", "NE", "N", "출발 및 SE 진입");
+                           message_function(car_num, "NE", "N", "N", "SE 탈출 및 NE 진입");
                            V(SE);
                            V(NE);
-                           message_function(car_num, "N", "N...", "목적지 N 도착");
+                           message_function(car_num, "N", "N", "N", "NE 탈출 및 목적지 N 도착!");
 			   break;
-		case 'W' : message_function(car_num, "W", "SW", "E");
+		case 'W' : message_function(car_num, "W", "SW", "E", "현재 교차로의 W에서 대기중..");
                            P(SW);                          
                            P(SE);
-			   message_function(car_num, "SW", "SE", "E");
-                           message_function(car_num, "SE", "E", "E");
+			   message_function(car_num, "SW", "SE", "E", "출발 및 SW 진입");
+                           message_function(car_num, "SE", "E", "E", "SW 탈출 및 SE 진입");
                            V(SW);
                            V(SE);
-                           message_function(car_num, "E", "E...", "목적지 E 도착");
+                           message_function(car_num, "E", "E", "E", "SE 탈출 및 목적지 E 도착!");
 			   break;
-		default  : P(PRINT);
+		default  : P(testsem);
 			   kprintf("잘못된 입력입니다.\n");
-			   V(PRINT);
+			   V(donesem);
 			   break;
 	}
 	V(INTER);
@@ -192,36 +176,25 @@ static
 void
 semtestthread(void *junk, unsigned long num)
 {
-	//int i;
 	(void)junk;
 
 	/*
 	 * Only one of these should print at a time.
 	 */
-
-	//srand(1);	// 난수 생성
-	int random_num = random()%4;		// 난수 생성
+	int random_num = random()%4;	// 난수 생성
 
 	char start;
 	if (random_num == 0)
 		start = 'N';
 	else if (random_num == 1)
-		start = 'E';	// 원래 E
+		start = 'E';
 	else if (random_num == 2)
-		start = 'S';	// 원래 S
+		start = 'S';
 	else
 		start = 'W';
 
 
 	gostraight(num, start);
-
-
-	P(testsem);	// 테스트
-		
-	//gostraight(num, start);
-	
-	kprintf("\n");
-	V(donesem);   // 테스트
 }
 
 int
@@ -235,8 +208,8 @@ semtest(int nargs, char **args)
 	inititems();
 	kprintf("Starting semaphore test...\n");
 	kprintf("If this hangs, it's broken: ");
-	P(testsem);   // 테스트
-	P(testsem);   // 테스트
+	P(testsem);
+	P(testsem);
 	kprintf("ok\n");
 
 	for (i=0; i<NTHREADS; i++) {
@@ -248,13 +221,20 @@ semtest(int nargs, char **args)
 	}
 
 	for (i=0; i<NTHREADS; i++) {
+		/*message_function에서의 testsem, donesem 회수*/
+		V(testsem);
+		P(donesem);
+		V(testsem);
+		P(donesem);
+		V(testsem);
+		P(donesem);
 		V(testsem);
 		P(donesem);
 	}
 
 	/* so we can run it again */
-	V(testsem);   // 테스트
-	V(testsem);   // 테스트
+	V(testsem);
+	V(testsem);
 
 	kprintf("Semaphore test done.\n");
 	return 0;
