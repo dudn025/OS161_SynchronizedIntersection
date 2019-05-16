@@ -130,37 +130,37 @@ static void gostraight(int car_num, char start){
 	switch(start) {
 		case 'N' : message_function(car_num, "N", "NW", "S", "현재 교차로의 N에서 대기중..");
 			   P(NW);
-			   P(SW);
 			   message_function(car_num, "NW", "SW", "S", "출발 및 NW 진입");
-			   message_function(car_num, "SW", "S", "S", "NW 탈출 및 SW 진입");
+			   P(SW);			   
 			   V(NW);
+			   message_function(car_num, "SW", "S", "S", "NW 탈출 및 SW 진입");
 			   V(SW);
 			   message_function(car_num, "S", "S", "S", "SW 탈출 및 목적지 S 도착!");
 			   break;
 		case 'E' : message_function(car_num, "E", "NE", "W", "현재 교차로의 E에서 대기중..");
                            P(NE);
-                           P(NW);
 			   message_function(car_num, "NE", "NW", "W", "출발 및 NE 진입");
-			   message_function(car_num, "NW", "W", "W", "NE 탈출 및 NW 진입");
+                           P(NW);
 			   V(NE);
+			   message_function(car_num, "NW", "W", "W", "NE 탈출 및 NW 진입");			   
                            V(NW);
                            message_function(car_num, "W", "W", "W", "NW 탈출 및 목적지 W 도착!");
 			   break;
 		case 'S' : message_function(car_num, "S", "SE", "N", "현재 교차로의 S에서 대기중..");
                            P(SE);
-                           P(NE);
 			   message_function(car_num, "SE", "NE", "N", "출발 및 SE 진입");
-                           message_function(car_num, "NE", "N", "N", "SE 탈출 및 NE 진입");
-                           V(SE);
+                           P(NE);
+			   V(SE);
+                           message_function(car_num, "NE", "N", "N", "SE 탈출 및 NE 진입");                           
                            V(NE);
                            message_function(car_num, "N", "N", "N", "NE 탈출 및 목적지 N 도착!");
 			   break;
 		case 'W' : message_function(car_num, "W", "SW", "E", "현재 교차로의 W에서 대기중..");
-                           P(SW);                          
+                           P(SW);
+			   message_function(car_num, "SW", "SE", "E", "출발 및 SW 진입");                          
                            P(SE);
-			   message_function(car_num, "SW", "SE", "E", "출발 및 SW 진입");
-                           message_function(car_num, "SE", "E", "E", "SW 탈출 및 SE 진입");
-                           V(SW);
+			   V(SW);
+                           message_function(car_num, "SE", "E", "E", "SW 탈출 및 SE 진입");                           
                            V(SE);
                            message_function(car_num, "E", "E", "E", "SE 탈출 및 목적지 E 도착!");
 			   break;
@@ -192,7 +192,6 @@ semtestthread(void *junk, unsigned long num)
 		start = 'S';
 	else
 		start = 'W';
-
 
 	gostraight(num, start);
 }
